@@ -1,0 +1,138 @@
+replicaCount: 1
+
+image:
+  repository: {{.Helm.Release.Image}}
+  tag: {{.Helm.Release.Tag}}
+  pullPolicy: IfNotPresent
+
+annotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/probe: "true"
+  prometheus.io/port: "8091"
+  prometheus.io/path: "/metrics"
+
+ports:
+  - name: http
+    containerPort: 8090
+    protocol: TCP
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 8091
+  initialDelaySeconds: 30
+  periodSeconds: 20
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8091
+  initialDelaySeconds: 30
+  periodSeconds: 20
+
+
+env:
+  environment: stage
+  MESSENGER_SERVER_NAME: messenger
+  MESSENGER_SERVER_VERSION: 0.0.1
+  MESSENGER_SERVER_HOST: 0.0.0.0
+  MESSENGER_SERVER_PORT: 8090
+  MESSENGER_SERVER_SYSTEM_PORT: 8091
+  MESSENGER_SERVER_MAX_REQUEST_BODY_SIZE: 620
+  MESSENGER_SERVER_READ_BUFFER_SIZE: 16384
+  MESSENGER_SERVER_READ_TIMEOUT: 60s
+  MESSENGER_SERVER_WRITE_TIMEOUT: 120s
+  MESSENGER_SERVER_SHUTDOWN_TIMEOUT: 10s
+  MESSENGER_SERVER_IDLE_TIMEOUT: 10s
+  MESSENGER_SERVER_RESPONSE_TIMEOUT: 10000s
+
+  MESSENGER_LOGGER_DEBUG: 1
+  MESSENGER_LOGGER_LEVEL: debug
+
+  MESSENGER_POSTGRESQL_MESSAGES_DATABASE: wibe_messenger
+  MESSENGER_POSTGRESQL_MESSAGES_MAX_CONNECTION_IDLETIME: 30m
+  MESSENGER_POSTGRESQL_MESSAGES_MAX_CONNECTIONS: 50
+  MESSENGER_POSTGRESQL_MESSAGES_MIN_CONNECTIONS: 1
+
+  MESSENGER_POSTGRESQL_MESSAGES_RO_DATABASE: wibe_messenger
+  MESSENGER_POSTGRESQL_MESSAGES_RO_MAX_CONNECTION_IDLETIME: 30m
+  MESSENGER_POSTGRESQL_MESSAGES_RO_MAX_CONNECTIONS: 50
+  MESSENGER_POSTGRESQL_MESSAGES_RO_MIN_CONNECTIONS: 1
+
+  MESSENGER_S3_ENDPOINT: s3-basket-cold.wb.ru
+  MESSENGER_S3_REGION: ru-central1
+  MESSENGER_S3_SERVICE_NAME: s3
+
+  MESSENGER_WEBSOCKET_SERVER_API_HOST: http://socket-service.wibe
+  MESSENGER_WEBSOCKET_SERVER_ENABLED: false
+
+  # prod auth
+  MESSENGER_LOGOFF_PUBLIC_KEYS_URL: https://file-storage.wb.ru/public/pubs.json
+  MESSENGER_LOGOFF_CONFIG_URL: https://file-storage.wb.ru/public/config.json
+  MESSENGER_LOGOFF_LOGOFFS_URL: https://file-storage.wb.ru/private/logoffs.csv.gz
+  MESSENGER_LOGOFF_API: https://auth-logoffs.wb.ru
+  MESSENGER_LOGOFF_AUTHOR_VALIDATION_ENABLED: false
+
+  MESSENGER_VARS_WIBE_API_HOST: http://api.wibe
+  MESSENGER_VARS_MESSENGER_API_HOST: http://messenger.wibe.k8s.wibe-stage
+  MESSENGER_VARS_WIBE_HOSTS: wibe-frontend.wibe.k8s.wibe-stage
+
+  MESSENGER_DIRECT_BATCHER_BATCH_SIZE: 1000
+  MESSENGER_DIRECT_BATCHER_BATCH_TIMEOUT: 50ms
+
+  MESSENGER_GROUP_BATCHER_BATCH_SIZE: 1000
+  MESSENGER_GROUP_BATCHER_BATCH_TIMEOUT: 50ms
+
+  MESSENGER_MODERATION_HOST: http://moderation-ingress-controller.moderation.k8s.tns-stage-el/content-processing-service
+  MESSENGER_MODERATION_ENABLED: true
+
+  GOMAXPROCS: 4
+
+vault:
+  enabled: true
+  env:
+    # Путь до секрета и значений в нем
+    - services/wibe/stage/wibe-messenger-pgsql-cl1-stage/pgsql_endpoints:
+        MESSENGER_POSTGRESQL_MESSAGES_HOST: k8s_haproxy_pgsql_master
+        MESSENGER_POSTGRESQL_MESSAGES_RO_HOST: k8s_haproxy_pgsql_replicasync
+    - services/wibe/stage/wibe-messenger-pgsql-cl1-stage/user_rw:
+        MESSENGER_POSTGRESQL_MESSAGES_LOGIN: login
+        MESSENGER_POSTGRESQL_MESSAGES_PASSWORD: password
+    - services/wibe/stage/wibe-messenger-pgsql-cl1-stage/user_ro:
+        MESSENGER_POSTGRESQL_MESSAGES_RO_LOGIN: login
+        MESSENGER_POSTGRESQL_MESSAGES_RO_PASSWORD: password
+    - services/wibe/stage/wibe-messenger/s3:
+        MESSENGER_S3_ACCESS_KEY_ID: access_key_id
+        MESSENGER_S3_SECRET_ACCESS_KEY: secret_access_key
+        MESSENGER_S3_BUCKET: bucket
+    - services/wibe/stage/wibe-messenger/auth:
+        MESSENGER_WEBSOCKET_SERVER_AUTH_KEY: socketService
+        MESSENGER_LOGOFF_TOKEN: logoffToken
+    - services/wibe/stage/wibe-messenger/moderation:
+        APP_ENV: appEnv
+        DATABUS_USERNAME: databusUsername
+        DATABUS_PASSWORD: databusPassword
+        MESSENGER_MODERATION_THEIR_TOKEN: theirToken
+        MESSENGER_MODERATION_OUR_TOKEN: ourToken
+
+# # Set imagePullSecrets if exist
+imagePullSecrets:
+ - name: harbor-registry-secret
+
+resources:
+  requests:
+    memory: "1024Mi"
+    cpu: "2"
+  limits:
+    memory: "8192Mi"
+    cpu: "4"
+
+service:
+  enabled: true
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  ports:
+    - protocol: TCP
+      name: http
+      port: 80
+      targetPort: 8090
