@@ -20,3 +20,19 @@ resources:
 env:
   - name: LOG_LEVEL
     value: debug
+  - name: DATABASE_URL
+    value: "host=postgres-service port=5432 user=ticker_user password=ticker_password dbname=ticker_db sslmode=disable"
+
+postgresql:
+  enabled: true
+  username: ticker_user
+  password: ticker_password
+  database: ticker_db
+  storageSize: 1Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
