@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: alexseipopov/t-ticker
-  tag: "latest"   # в CI можно подставить автоматически
+  tag: "1.0.2"   # в CI можно подставить автоматически
   pullPolicy: IfNotPresent
 
 service:
