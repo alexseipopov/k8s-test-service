@@ -30,7 +30,8 @@ postgresql:
   database: ticker_db
   storageSize: 1Gi
   image:
-    repository: postgres:15
+    repository: postgres
+    tag: 15
   resources:
     requests:
       cpu: 100m
