@@ -29,6 +29,8 @@ postgresql:
   password: ticker_password
   database: ticker_db
   storageSize: 1Gi
+  image:
+    repository: postgres:15
   resources:
     requests:
       cpu: 100m
