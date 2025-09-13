@@ -1,17 +1,14 @@
-# values.yaml для твоего space-21 приложения
+# values-dev.yaml
 image:
   repository: alexseipopov/t-ticker
   tag: v1.0.2
   pullPolicy: IfNotPresent
 
+replicaCount: 1
+
 service:
   type: ClusterIP
   port: 8080
-
-# ДОБАВЛЯЕМ ПЕРЕМЕННУЮ ОКРУЖЕНИЯ
-env:
-  - name: DATABASE_URL
-    value: "host=pgs-dev port=5432 user=ticker_user password=ticker_password dbname=ticker_db sslmode=disable"
 
 resources:
   limits:
@@ -20,3 +17,8 @@ resources:
   requests:
     cpu: 100m
     memory: 128Mi
+
+# ДОБАВЛЯЕМ ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ
+env:
+  - name: DATABASE_URL
+    value: "host=pgs-dev port=5432 user=ticker_user password=ticker_password dbname=ticker_db sslmode=disable"
