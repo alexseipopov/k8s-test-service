@@ -1,5 +1,5 @@
 # Многоэтапная сборка для оптимизации размера образа
-FROM --platform=linux/amd64 golang:1.22-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.24-alpine AS builder
 
 # Устанавливаем необходимые пакеты
 RUN apk add --no-cache git ca-certificates tzdata
@@ -16,11 +16,12 @@ RUN go mod download
 # Копируем исходный код
 COPY . .
 
-# Собираем приложение
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
+# Собираем приложение с учетом целевой архитектуры
+ARG TARGETOS TARGETARCH
+RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} CGO_ENABLED=0 go build -ldflags="-w -s" -o main .
 
 # Финальный образ
-FROM --platform=linux/amd64 alpine:latest
+FROM --platform=$TARGETPLATFORM alpine:latest
 
 # Устанавливаем ca-certificates для HTTPS запросов
 RUN apk --no-cache add ca-certificates tzdata

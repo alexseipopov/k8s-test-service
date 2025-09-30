@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -85,6 +86,11 @@ func (dm *DatabaseManager) Close() error {
 	return dm.db.Close()
 }
 
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
+}
+
 func main() {
 	// Получаем строку подключения из переменной окружения или используем значения по умолчанию
 	connectionString := os.Getenv("DATABASE_URL")
@@ -98,6 +104,15 @@ func main() {
 		log.Fatalf("Ошибка инициализации БД: %v", err)
 	}
 	defer dbManager.Close()
+
+	// Настраиваем HTTP сервер
+	http.HandleFunc("/health", healthHandler)
+	go func() {
+		log.Printf("HTTP сервер запущен на порту 8080")
+		if err := http.ListenAndServe(":8080", nil); err != nil {
+			log.Fatalf("Ошибка запуска HTTP сервера: %v", err)
+		}
+	}()
 
 	fmt.Println("Программа запущена. Записи будут добавляться каждые 5 секунд...")
 	fmt.Printf("Подключение к БД: %s\n", connectionString)
